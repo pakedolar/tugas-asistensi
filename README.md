@@ -1,61 +1,116 @@
-// bank_interest.c
- # Laporan Commit - Modul P4  
-**Nama:** Raasyid Ramadhan  
-**NRP:** 5023251109  
-**Kelas:** Dasar Pemrograman 4  
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>  // Wajib untuk pow()
 
----
+typedef enum { SIMPLE = 1, COMPOUND = 2 } InterestType;
 
-## Riwayat Commit
+typedef struct {
+    char   nama[64];
+    double pokok;        // jumlah awal uang
+    double rate;         // suku bunga per tahun 
+    int    tahun;        // lama menabung (tahun)
+    int    n_per_tahun;  // frekuensi kapitalisasi per tahun (untuk majemuk)
+    InterestType tipe;   // SIMPLE atau COMPOUND (sederhana atau majemuk)
+} Rekening;
 
-### Commit 1: First push of the day  
-**Tanggal:** 06 Oktober 2025  
-**Deskripsi:**  
-- Inisialisasi awal repository tugas.  
-- Menambahkan file dasar program dan struktur direktori proyek.  
+double total_simple(const Rekening *r) {
+    return r->pokok + r->pokok * r->rate * r->tahun;
+}
 
----
+double total_compound(const Rekening *r) {
+    int n = (r->n_per_tahun > 0) ? r->n_per_tahun : 1;
+    return r->pokok * pow(1.0 + r->rate / n, (double)(n * r->tahun));
+}
 
-### Commit 2: fixed the title for readme.md  
-**Tanggal:** 06 Oktober 2025  
-**Deskripsi:**  
-- Memperbaiki penulisan judul pada file `README.md`.  
-- Menambahkan deskripsi tugas agar lebih mudah dipahami di halaman utama repository.  
+void cetak_ringkasan(const Rekening *r) {
+    double total = (r->tipe == SIMPLE) ? total_simple(r) : total_compound(r);
+    double bunga = total - r->pokok;
 
----
+    printf("\n--- Ringkasan Rekening ---\n");
+    printf("Nama               : %s\n", r->nama);
+    printf("Pokok              : Rp %.2f\n", r->pokok);
+    printf("Suku Bunga (%%/thn) : %.2f%%\n", r->rate * 100.0);
+    printf("Lama (tahun)       : %d\n", r->tahun);
+    if (r->tipe == COMPOUND) {
+        printf("Kapitalisasi/thn   : %d x\n", r->n_per_tahun);
+        printf("Tipe               : Bunga Majemuk\n");
+    } else {
+        printf("Tipe               : Bunga Sederhana\n");
+    }
+    printf("Total Bunga        : Rp %.2f\n", bunga);
+    printf("Total Akhir        : Rp %.2f\n", total);
+}
 
-### Commit 3: Update main.c  
-**Tanggal:** 06 Oktober 2025  
-**Deskripsi:**  
-- Menambahkan library `<math.h>` untuk fungsi `pow()`.  
-- Memperbaiki deklarasi `typedef struct Rekening` agar lebih sesuai dengan tipe data bunga.  
-- Memperbaiki kesalahan logika pada penentuan tipe bunga (simple dan compound).  
+int main(void) {
+    int n;
+    printf("Masukkan jumlah nasabah: ");
+    if (scanf("%d", &n) != 1 || n <= 0) {
+        fprintf(stderr, "Input jumlah nasabah tidak valid.\n");
+        return 1;
+    }
 
----
+    Rekening *arr = (Rekening*)malloc(sizeof(Rekening) * n);
+    if (!arr) {
+        fprintf(stderr, "Gagal alokasi memori.\n");
+        return 1;
+    }
 
-### Commit 4: Update launch.json  
-**Tanggal:** 06 Oktober 2025  
-**Deskripsi:**  
-- Menambahkan konfigurasi debug di VS Code agar program dapat dijalankan langsung melalui *Run and Debug*.  
-- Menghubungkan dengan compiler `gcc.exe` untuk kompilasi C.  
+    for (Rekening *p = arr; p < arr + n; ++p) {
+        int tipe;
+        double rate_percent;
 
----
+        printf("\n=== Data Nasabah %ld ===\n", (long)(p - arr + 1));
+        printf("Nama lengkap: ");
+        scanf(" %63[^\n]", p->nama);
 
-### Commit 5: Add REPORT.md  
-**Tanggal:** 06 Oktober 2025  
-**Deskripsi:**  
-- Menambahkan file laporan `REPORT.md` sebagai dokumentasi commit.  
-- Mencatat seluruh log perubahan yang dilakukan selama pengerjaan tugas praktikum.  
+        printf("Jumlah pokok (Rp): ");
+        if (scanf("%lf", &p->pokok) != 1 || p->pokok < 0) {
+            fprintf(stderr, "Input pokok tidak valid.\n");
+            free(arr);
+            return 1;
+        }
 
----
+        printf("Suku bunga per tahun (%%), mis. 5 untuk 5%%: ");
+        if (scanf("%lf", &rate_percent) != 1 || rate_percent < 0) {
+            fprintf(stderr, "Input suku bunga tidak valid.\n");
+            free(arr);
+            return 1;
+        }
+        p->rate = rate_percent / 100.0;
 
-## Catatan Tambahan
-- Semua perubahan dilakukan menggunakan **Visual Studio Code** dan **GitHub Desktop**.  
-- Kompilasi dilakukan menggunakan **MinGW (gcc)**.  
-- Struktur kode dan tipe data sudah diperbaiki agar sesuai dengan logika perhitungan bunga majemuk dan sederhana.  
-- File `REPORT.md` ini berfungsi sebagai catatan perkembangan versi selama pengerjaan tugas.
+        printf("Lama menabung (tahun): ");
+        if (scanf("%d", &p->tahun) != 1 || p->tahun < 0) {
+            fprintf(stderr, "Input tahun tidak valid.\n");
+            free(arr);
+            return 1;
+        }
 
----
+        printf("Pilih tipe bunga (1 = sederhana, 2 = majemuk): ");
+        if (scanf("%d", &tipe) != 1 || (tipe != 1 && tipe != 2)) {
+            fprintf(stderr, "Pilihan tipe tidak valid.\n");
+            free(arr);
+            return 1;
+        }
+        p->tipe = (tipe == 1) ? SIMPLE : COMPOUND;
 
-**Status Akhir:**  
-Semua perubahan sudah di-*commit* dan *push* ke repository GitHub dengan branch utama `master`.   
+        if (p->tipe == COMPOUND) {
+            printf("Frekuensi kapitalisasi per tahun (mis. 12 untuk bulanan): ");
+            if (scanf("%d", &p->n_per_tahun) != 1 || p->n_per_tahun <= 0) {
+                fprintf(stderr, "Frekuensi kapitalisasi tidak valid.\n");
+                free(arr);
+                return 1;
+            }
+        } else {
+            p->n_per_tahun = 0;
+        }
+    }
+
+    for (Rekening *p = arr; p < arr + n; ++p) {
+        cetak_ringkasan(p);
+    }
+
+    free(arr);
+    return 0;
+}
+
